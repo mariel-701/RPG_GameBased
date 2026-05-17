@@ -5,15 +5,44 @@
 - Java 17+ installed (`javac` and `java` available in PATH)
 - Run all commands from the **project root directory**
 
-## Compile & Run (One Liner)
+---
+
+## Windows
+
+### Option 1: Run the Batch Script (Recommended)
+
+Double-click `run.bat` or run in CMD:
+
+```cmd
+run.bat
+```
+
+### Option 2: Run the PowerShell Script
+
+```powershell
+.\run.ps1
+```
+
+### Option 3: Manual Compile & Run in CMD
+
+```cmd
+javac -d build src\characters\*.java src\enemies\*.java src\items\*.java src\main\*.java
+java -cp build main.Main
+```
+
+---
+
+## Linux / macOS
+
+### Option 1: One-Liner
 
 ```bash
 javac -d build src/**/*.java && java -cp build main.Main
 ```
 
-## Step-by-Step
+### Option 2: Step-by-Step
 
-### 1. Compile
+#### 1. Compile
 
 ```bash
 javac -d build src/characters/Character.java \
@@ -35,31 +64,31 @@ javac -d build src/characters/Character.java \
   src/main/Main.java
 ```
 
-### 2. Run
+#### 2. Run
 
 ```bash
 java -cp build main.Main
 ```
 
-## Using a Shell Script
-
-Create `run.sh` in the project root:
-
-```bash
-#!/bin/bash
-javac -d build src/**/*.java && java -cp build main.Main
-```
-
-Then:
+### Option 3: Using a Shell Script
 
 ```bash
 chmod +x run.sh
 ./run.sh
 ```
 
+Or create `run.sh` yourself:
+
+```bash
+#!/bin/bash
+javac -d build src/**/*.java && java -cp build main.Main
+```
+
+---
+
 ## Important Notes
 
-- Run from the **project root** (`/home/tiredshyt/help/game`) so the game can find image assets in the `assets/` folder.
+- Run from the **project root** so the game can find image assets in the `assets/` folder.
 - The `build/` directory is created automatically during compilation.
 - If you get a "file not found" for images, the game will still run — it just won't show the background or character sprites.
 
