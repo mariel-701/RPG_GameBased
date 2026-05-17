@@ -204,16 +204,16 @@ public class GamePanel extends JPanel implements ActionListener {
     // IMAGE LOADING
     // ============================================================
     private void loadImages() {
-        try { background = new ImageIcon("assets/backgrounds/battle.jpg").getImage(); }
+        try { background = new ImageIcon(getClass().getResource("/backgrounds/battle.jpg")).getImage(); }
         catch (Exception e) { background = null; }
 
-        try { enemyImage = new ImageIcon("assets/backgrounds/characters/enemy.png").getImage(); }
+        try { enemyImage = new ImageIcon(getClass().getResource("/backgrounds/characters/enemy.png")).getImage(); }
         catch (Exception e) { enemyImage = null; }
 
         for (int i = 0; i < party.size() && i < 2; i++) {
             String heroType = party.get(i).getClass().getSimpleName().toLowerCase();
             try {
-                ImageIcon icon = new ImageIcon("assets/backgrounds/characters/" + heroType + ".png");
+                ImageIcon icon = new ImageIcon(getClass().getResource("/backgrounds/characters/" + heroType + ".png"));
                 playerImages[i] = icon.getImage();
             } catch (Exception e) {
                 playerImages[i] = null;
@@ -770,50 +770,60 @@ public class GamePanel extends JPanel implements ActionListener {
             g2d.fillRect(0, 0, getWidth(), getHeight());
         }
 
+        // --- Party title at top left ---
         g2d.setColor(TEXT_WHITE);
         g2d.setFont(new Font("Arial", Font.BOLD, 26));
         String title = party.size() >= 2 ? party.get(0).getName() + " & " + party.get(1).getName() : "Battle";
         g2d.drawString(title, 20, 30);
 
-        int partyStartY = 50;
-        for (int i = 0; i < party.size(); i++) {
+        // ========== HEROES (lower left, big) ==========
+        int[] heroImgX = {20, 225};
+        int[] heroImgY = {230, 270};
+        int heroImgW = 180;
+        int heroImgH = 220;
+
+        for (int i = 0; i < party.size() && i < 2; i++) {
             characters.Character c = party.get(i);
-            int y = partyStartY + i * 55;
 
-            g2d.setColor(new Color(40, 40, 40));
-            g2d.fillRect(130, y, 250, 22);
-
-            int hpWidth = (int)(250.0 * c.getHp() / c.getMaxHp());
-            g2d.setColor(c.getHp() > c.getMaxHp() / 3 ? HP_GREEN : HP_RED);
-            g2d.fillRect(130, y, hpWidth, 22);
-
-            g2d.setColor(new Color(40, 40, 40));
-            g2d.fillRect(130, y + 24, 250, 10);
-
-            int mpWidth = (int)(250.0 * c.getMp() / c.getMaxMp());
-            g2d.setColor(MP_BLUE);
-            g2d.fillRect(130, y + 24, mpWidth, 10);
-
+            // Character name + status
             g2d.setColor(TEXT_WHITE);
-            g2d.setFont(new Font("Arial", Font.BOLD, 13));
+            g2d.setFont(new Font("Arial", Font.BOLD, 14));
             String status = c.getName();
             if (!c.isAlive()) status += " [DOWN]";
             if (i == currentMemberIndex && playerTurn && c.isAlive()) {
                 status += " \u25C0 ACTIVE";
                 g2d.setColor(new Color(100, 255, 100));
             }
-            g2d.drawString(status, 15, y + 16);
+            g2d.drawString(status, heroImgX[i] - 5, heroImgY[i] - 8);
 
+            // HP bar background
+            g2d.setColor(new Color(40, 40, 40));
+            g2d.fillRect(heroImgX[i], heroImgY[i] + heroImgH + 5, 200, 20);
+
+            // HP bar
+            int hpWidth = (int)(200.0 * c.getHp() / c.getMaxHp());
+            g2d.setColor(c.getHp() > c.getMaxHp() / 3 ? HP_GREEN : HP_RED);
+            g2d.fillRect(heroImgX[i], heroImgY[i] + heroImgH + 5, hpWidth, 20);
+
+            // MP bar background
+            g2d.setColor(new Color(40, 40, 40));
+            g2d.fillRect(heroImgX[i], heroImgY[i] + heroImgH + 28, 200, 10);
+
+            // MP bar
+            int mpWidth = (int)(200.0 * c.getMp() / c.getMaxMp());
+            g2d.setColor(MP_BLUE);
+            g2d.fillRect(heroImgX[i], heroImgY[i] + heroImgH + 28, mpWidth, 10);
+
+            // HP/MP text
             g2d.setColor(TEXT_WHITE);
             g2d.setFont(new Font("Arial", Font.PLAIN, 11));
-            g2d.drawString("HP: " + c.getHp() + "/" + c.getMaxHp(), 130, y + 16);
-            g2d.drawString("MP: " + c.getMp() + "/" + c.getMaxMp(), 130, y + 33);
+            g2d.drawString("HP: " + c.getHp() + "/" + c.getMaxHp(), heroImgX[i] + 5, heroImgY[i] + heroImgH + 19);
+            g2d.drawString("MP: " + c.getMp() + "/" + c.getMaxMp(), heroImgX[i] + 5, heroImgY[i] + heroImgH + 36);
 
+            // Hero sprite
             if (i < playerImages.length && playerImages[i] != null) {
-                int baseX = 400 + i * 80;
-                int baseY = 130 + i * 20;
-                int imgW = 100;
-                int imgH = 120;
+                int baseX = heroImgX[i];
+                int baseY = heroImgY[i];
 
                 // --- IDLE BOB ---
                 float bobY = (float)(Math.sin(animTick * 0.08 + i * Math.PI) * 2.5);
@@ -828,19 +838,19 @@ public class GamePanel extends JPanel implements ActionListener {
                 if (heroSkill[i]) {
                     long elapsed = System.currentTimeMillis() - heroSkillStartMs[i];
                     float progress = Math.min(1f, elapsed / (float)SKILL_ANIM_MS);
-                    lungeX = (float)(Math.sin(progress * Math.PI) * 40);
+                    lungeX = (float)(Math.sin(progress * Math.PI) * 50);
                     lungeY = (float)(-Math.abs(Math.sin(progress * Math.PI * 2)) * 10);
                 } else if (heroAttacking[i]) {
                     long elapsed = System.currentTimeMillis() - heroAttackStartMs[i];
                     float progress = Math.min(1f, elapsed / (float)ATTACK_ANIM_MS);
-                    lungeX = (float)(Math.sin(progress * Math.PI) * 28);
+                    lungeX = (float)(Math.sin(progress * Math.PI) * 35);
                     lungeY = (float)(-Math.abs(Math.sin(progress * Math.PI * 2)) * 6);
                 }
 
                 int drawX = (int)(baseX + lungeX);
                 int drawY = (int)(baseY + bobY + lungeY);
 
-                g2d.drawImage(playerImages[i], drawX, drawY, imgW, imgH, this);
+                g2d.drawImage(playerImages[i], drawX, drawY, heroImgW, heroImgH, this);
 
                 // --- HURT FLASH ---
                 if (heroHurt[i]) {
@@ -850,20 +860,25 @@ public class GamePanel extends JPanel implements ActionListener {
                         float alpha = (float)(Math.sin(progress * Math.PI * 5) * 0.35f + 0.35f);
                         g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
                         g2d.setColor(Color.RED);
-                        g2d.fillRect(drawX, drawY, imgW, imgH);
+                        g2d.fillRect(drawX, drawY, heroImgW, heroImgH);
                         g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f));
                     }
                 }
             }
         }
 
-        int enemyStartX = 850;
-        int enemyY = 70;
+        // ========== ENEMIES (right side) ==========
+        int enemyStartX = 820;
+        int enemyY = 60;
+        int enemyImgW = 130;
+        int enemyImgH = 150;
+
         for (int i = 0; i < enemies.size(); i++) {
             Enemy e = enemies.get(i);
-            int x = enemyStartX - i * 80;
+            int x = enemyStartX - i * 60;
 
             if (e.isAlive()) {
+                // HP bar
                 g2d.setColor(new Color(40, 40, 40));
                 g2d.fillRect(x, enemyY, 180, 20);
 
@@ -871,10 +886,12 @@ public class GamePanel extends JPanel implements ActionListener {
                 g2d.setColor(HP_RED);
                 g2d.fillRect(x, enemyY, hpWidth, 20);
 
+                // Name + HP text
                 g2d.setColor(TEXT_WHITE);
                 g2d.setFont(new Font("Arial", Font.BOLD, 12));
                 g2d.drawString(e.getName() + " HP: " + e.getHp() + "/" + e.getMaxHp(), x, enemyY + 14);
 
+                // Buff/taunt indicators
                 if (e.getAttackBuff() > 0) {
                     g2d.setColor(new Color(255, 200, 100));
                     g2d.setFont(new Font("Arial", Font.BOLD, 10));
@@ -885,6 +902,8 @@ public class GamePanel extends JPanel implements ActionListener {
                     g2d.setFont(new Font("Arial", Font.BOLD, 10));
                     g2d.drawString("TAUNT", x + 140, enemyY + 4);
                 }
+
+                // Enemy sprite
                 if (enemyImage != null) {
                     float shakeX = 0, shakeY = 0;
                     if (enemyShakeAmount != null && i < enemyShakeAmount.length && enemyShakeAmount[i] > 0) {
@@ -895,16 +914,18 @@ public class GamePanel extends JPanel implements ActionListener {
                             shakeY = (float)((Math.random() - 0.5) * enemyShakeAmount[i] * decay);
                         }
                     }
-                    g2d.drawImage(enemyImage, (int)(x + shakeX), (int)(enemyY + 25 + shakeY), 100, 120, this);
+                    g2d.drawImage(enemyImage, (int)(x + shakeX), (int)(enemyY + 25 + shakeY), enemyImgW, enemyImgH, this);
                 }
-                enemyY += 160;
+                enemyY += 200;
             }
         }
 
+        // ========== FLOATING TEXT ==========
         if (!floatingText.isEmpty() && floatTimer.isRunning()) {
-            g2d.setFont(new Font("Arial", Font.BOLD, 28));
+            g2d.setFont(new Font("Arial", Font.BOLD, 32));
             g2d.setColor(new Color(255, 255, 200));
-            g2d.drawString(floatingText, 480, floatingY);
+            int textWidth = g2d.getFontMetrics().stringWidth(floatingText);
+            g2d.drawString(floatingText, (getWidth() - textWidth) / 2, floatingY);
         }
     }
 

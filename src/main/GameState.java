@@ -2,6 +2,7 @@ package main;
 
 import characters.Character;
 import items.Item;
+import items.Item.EffectType;
 import items.EmptyInventoryException;
 import java.util.ArrayList;
 
@@ -19,8 +20,8 @@ public class GameState {
     private static final String[] STARTER_ITEM_DESCS = {
         "Restores 30 HP", "Reduces skill cooldown by 1", "Revives a fallen party member with 50% HP"
     };
-    private static final String[] STARTER_ITEM_EFFECTS = {
-        "HEAL", "MANA", "REVIVE"
+    private static final EffectType[] STARTER_ITEM_EFFECTS = {
+        EffectType.HEAL_HP, EffectType.RESTORE_MP, EffectType.REVIVE
     };
 
     public GameState() {
@@ -31,12 +32,15 @@ public class GameState {
         this.enemiesDefeated = 0;
         this.turnsTaken = 0;
 
+            // Starter item gold values (cheaper versions of shop items)
+        int[] starterValues = {30, 30, 50};
         // Start with 3 consumable items
         for (int i = 0; i < 3; i++) {
             inventory.add(new Item(
                 STARTER_ITEM_NAMES[i],
                 STARTER_ITEM_DESCS[i],
-                STARTER_ITEM_EFFECTS[i]
+                STARTER_ITEM_EFFECTS[i],
+                starterValues[i]
             ));
         }
     }

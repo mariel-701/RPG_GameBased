@@ -1,6 +1,8 @@
 # RPG Battle System — Compile & Run (PowerShell)
-# Run this script from the project root directory.
 # Requires Java 17+ (javac and java in PATH).
+
+# Change to the directory where this script is located
+Set-Location $PSScriptRoot
 
 Write-Host "=== Compiling RPG Battle System ===" -ForegroundColor Cyan
 
@@ -28,8 +30,8 @@ Write-Host "Compilation successful!" -ForegroundColor Green
 Write-Host ""
 Write-Host "=== Running RPG Battle System ===" -ForegroundColor Cyan
 
-# Run
-java -cp build main.Main
+# Include assets directory on classpath so images load correctly
+java -cp "build;assets" main.Main
 if ($LASTEXITCODE -ne 0) {
     Write-Host "=== Game exited with code $LASTEXITCODE ===" -ForegroundColor Yellow
     pause

@@ -1,7 +1,9 @@
 @echo off
 REM RPG Battle System — Compile & Run (Windows CMD)
 REM Requires Java 17+ (javac and java in PATH).
-REM Run this script from the project root directory.
+
+REM Change to the directory where this script is located
+cd /d "%~dp0"
 
 echo === Compiling RPG Battle System ===
 
@@ -24,7 +26,8 @@ echo Compilation successful!
 echo.
 echo === Running RPG Battle System ===
 
-java -cp build main.Main
+REM Include assets directory on classpath so images load correctly
+java -cp build;assets main.Main
 if %ERRORLEVEL% neq 0 (
     echo === Game exited with code %ERRORLEVEL% ===
     pause

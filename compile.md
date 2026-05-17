@@ -27,7 +27,7 @@ run.bat
 
 ```cmd
 javac -d build src\characters\*.java src\enemies\*.java src\items\*.java src\main\*.java
-java -cp build main.Main
+java -cp build;assets main.Main
 ```
 
 ---
@@ -37,7 +37,7 @@ java -cp build main.Main
 ### Option 1: One-Liner
 
 ```bash
-javac -d build src/**/*.java && java -cp build main.Main
+javac -d build src/**/*.java && java -cp build:assets main.Main
 ```
 
 ### Option 2: Step-by-Step
@@ -67,29 +67,31 @@ javac -d build src/characters/Character.java \
 #### 2. Run
 
 ```bash
-java -cp build main.Main
+java -cp build:assets main.Main
 ```
 
 ### Option 3: Using a Shell Script
 
+First, make it executable:
+
 ```bash
 chmod +x run.sh
+```
+
+Then run:
+
+```bash
 ./run.sh
 ```
 
-Or create `run.sh` yourself:
-
-```bash
-#!/bin/bash
-javac -d build src/**/*.java && java -cp build main.Main
-```
+The script automatically updates, no need to create it yourself.
 
 ---
 
 ## Important Notes
 
-- Run from the **project root** so the game can find image assets in the `assets/` folder.
 - The `build/` directory is created automatically during compilation.
+- The `assets/` directory is now included on the classpath so the game can always find images, regardless of your working directory.
 - If you get a "file not found" for images, the game will still run — it just won't show the background or character sprites.
 
 ## Game Flow

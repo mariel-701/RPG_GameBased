@@ -32,10 +32,17 @@ public class CharacterSelect extends JPanel {
     private JButton loadButton;
     private JLabel instructionLabel;
 
+    // Background image
+    private Image background;
+
     public CharacterSelect(JFrame frame) {
         this.frame = frame;
         setLayout(null);
         setBackground(Color.BLACK);
+
+        // Load background image
+        try { background = new ImageIcon(getClass().getResource("/backgrounds/background.jpg")).getImage(); }
+        catch (Exception e) { background = null; }
 
         // ========== TITLE ==========
         JLabel title = new JLabel("SELECT YOUR HEROES");
@@ -55,9 +62,9 @@ public class CharacterSelect extends JPanel {
 
         // ========== HERO CARDS ==========
         String[] imagePaths = {
-            "assets/backgrounds/characters/warrior.png",
-            "assets/backgrounds/characters/mage.png",
-            "assets/backgrounds/characters/archer.png"
+            "/backgrounds/characters/warrior.png",
+            "/backgrounds/characters/mage.png",
+            "/backgrounds/characters/archer.png"
         };
 
         for (int i = 0; i < 3; i++) {
@@ -109,7 +116,7 @@ public class CharacterSelect extends JPanel {
         card.setLayout(new BorderLayout());
 
         // Try loading image
-        ImageIcon icon = new ImageIcon(imagePath);
+        ImageIcon icon = new ImageIcon(getClass().getResource(imagePath));
         if (icon.getIconWidth() > 0) {
             Image img = icon.getImage().getScaledInstance(160, 200, Image.SCALE_SMOOTH);
             JLabel imgLabel = new JLabel(new ImageIcon(img));
@@ -259,6 +266,14 @@ public class CharacterSelect extends JPanel {
         for (int i = 0; i < 3; i++) {
             // Cards centered vertically, spaced horizontally with fixed size 200x280
             cards[i].setBounds(cardX[i], 120, 200, 280);
+        }
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        if (background != null) {
+            g.drawImage(background, 0, 0, getWidth(), getHeight(), this);
         }
     }
 
