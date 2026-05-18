@@ -5,7 +5,6 @@ import characters.Mage;
 import characters.Archer;
 import enemies.*;
 import items.Item;
-import items.Item.EffectType;
 import items.EmptyInventoryException;
 
 import javax.swing.*;
@@ -27,7 +26,7 @@ public class GamePanel extends JPanel implements ActionListener {
 
     // ========== WAVE SYSTEM ==========
     private int currentWave;
-    private static final int MAX_WAVES = 4;
+    private static final int MAX_WAVES = 6;
     private List<Enemy> enemies;
 
     // ========== INVENTORY & ECONOMY ==========
@@ -64,7 +63,6 @@ public class GamePanel extends JPanel implements ActionListener {
     private boolean taunted = false;
     private boolean battleActive = true;
     private boolean waitingForAction = false;
-    private int actionsThisRound = 0;
 
     // ========== ANIMATION SYSTEM ==========
     private Timer animLoopTimer;
@@ -225,7 +223,6 @@ public class GamePanel extends JPanel implements ActionListener {
     // WAVE SETUP
     // ============================================================
     private void setupWave(int wave) {
-        actionsThisRound = 0;
         enemies = new ArrayList<>();
         // Reset enemy shake arrays for new wave
         if (enemyShakeAmount == null) enemyShakeAmount = new float[4];
@@ -236,6 +233,8 @@ public class GamePanel extends JPanel implements ActionListener {
             case 2: enemies.add(new Orc()); enemies.add(new Goblin()); break;
             case 3: enemies.add(new Skeleton()); enemies.add(new Skeleton()); break;
             case 4: enemies.add(new DarkKnight()); break;
+            case 5: enemies.add(new Orc()); enemies.add(new DarkKnight()); break;
+            case 6: enemies.add(new DragonBoss()); break;
             default: enemies.add(new Goblin());
         }
         waveLabel.setText("Wave " + wave + "/" + MAX_WAVES);
@@ -251,21 +250,53 @@ public class GamePanel extends JPanel implements ActionListener {
 
         if (allPartyDead()) { gameOver(false); return; }
 
-        int attempts = 0;
-        while (!party.get(currentMemberIndex).isAlive() && attempts < party.size()) {
-            currentMemberIndex = (currentMemberIndex + 1) % party.size();
-            attempts++;
-        }
-        if (attempts >= party.size()) { gameOver(false); return; }
+        // Allow the player to choose which alive hero will act this turn.
+        // If everyone is dead, game over.
+        int aliveCount = 0;
+        for (characters.Character c : party) if (c.isAlive()) aliveCount++;
+        if (aliveCount == 0) { gameOver(false); return; }
 
-        characters.Character current = party.get(currentMemberIndex);
-        playerTurn = true;
-        waitingForAction = true;
-
+        // If currently taunted or an enemy is taunting, keep forced behavior (no choice)
         boolean enemyTaunting = false;
         for (Enemy e : enemies) {
             if (e.isAlive() && e.isTaunting()) { enemyTaunting = true; break; }
         }
+
+        if (!taunted && !enemyTaunting) {
+            // Build selection list of alive heroes
+            List<String> choices = new ArrayList<>();
+            for (int i = 0; i < party.size(); i++) {
+                characters.Character c = party.get(i);
+                if (c.isAlive()) choices.add(i + ": " + c.getShortStatus());
+            }
+            String choice = (String) JOptionPane.showInputDialog(this,
+                "Choose a hero to act:", "Select Hero",
+                JOptionPane.PLAIN_MESSAGE, null, choices.toArray(new String[0]), choices.get(0));
+            if (choice != null) {
+                // parse chosen index from the string "idx: Name"
+                try {
+                    int idx = Integer.parseInt(choice.split(":")[0].trim());
+                    if (idx >= 0 && idx < party.size() && party.get(idx).isAlive()) {
+                        currentMemberIndex = idx;
+                    }
+                } catch (Exception ex) {
+                    // keep currentMemberIndex if parsing fails
+                }
+            }
+            // If user cancelled the dialog, fallthrough and use currentMemberIndex as-is
+        } else {
+            // Find next alive member if forced (taunt) behaviour or no choice allowed
+            int attempts = 0;
+            while (!party.get(currentMemberIndex).isAlive() && attempts < party.size()) {
+                currentMemberIndex = (currentMemberIndex + 1) % party.size();
+                attempts++;
+            }
+            if (attempts >= party.size()) { gameOver(false); return; }
+        }
+
+        characters.Character current = party.get(currentMemberIndex);
+        playerTurn = true;
+        waitingForAction = true;
 
         if (taunted || enemyTaunting) {
             taunted = true;
@@ -290,7 +321,14 @@ public class GamePanel extends JPanel implements ActionListener {
         enableButtons(false);
 
         characters.Character current = party.get(currentMemberIndex);
-        Enemy target = getFirstAliveEnemy();
+        // Determine target: if taunted prefer taunter, otherwise ask player to choose
+        Enemy target = null;
+        if (taunted) {
+            Enemy taunter = getTauntingEnemy();
+            target = (taunter != null && taunter.isAlive()) ? taunter : getFirstAliveEnemy();
+        } else {
+            target = chooseEnemyTarget();
+        }
         if (target == null) { waveComplete(); return; }
 
         // === ANIMATION: Attack lunge ===
@@ -344,7 +382,14 @@ public class GamePanel extends JPanel implements ActionListener {
         enableButtons(false);
 
         characters.Character current = party.get(currentMemberIndex);
-        Enemy target = getFirstAliveEnemy();
+        // Determine target: if taunted prefer taunter, otherwise ask player to choose
+        Enemy target = null;
+        if (taunted) {
+            Enemy taunter = getTauntingEnemy();
+            target = (taunter != null && taunter.isAlive()) ? taunter : getFirstAliveEnemy();
+        } else {
+            target = chooseEnemyTarget();
+        }
         if (target == null) { waveComplete(); return; }
 
         if (current.getMp() < current.getSkillMpCost()) {
@@ -491,32 +536,24 @@ public class GamePanel extends JPanel implements ActionListener {
     private void afterPlayerAction() {
         if (allEnemiesDefeated()) { waveComplete(); return; }
         if (allPartyDead()) { gameOver(false); return; }
-
+        // After any player action, enemies act immediately, then control returns
+        // to the next alive party member (round-robin).
         playerTurn = false;
 
-        // Count alive party members this round
-        int aliveCount = 0;
-        for (characters.Character c : party) {
-            if (c.isAlive()) aliveCount++;
+        // Compute next alive party member index (round-robin)
+        int nextIdx = (currentMemberIndex + 1) % party.size();
+        int attempts = 0;
+        while (!party.get(nextIdx).isAlive() && attempts < party.size()) {
+            nextIdx = (nextIdx + 1) % party.size();
+            attempts++;
         }
-
-        actionsThisRound++;
-
-        if (actionsThisRound >= aliveCount) {
-            // All party members have acted — enemies take their turn
-            actionsThisRound = 0;
-            startEnemyTurn();
-        } else {
-            // Next party member's turn
-            int nextIdx = (currentMemberIndex + 1) % party.size();
-            int attempts = 0;
-            while (!party.get(nextIdx).isAlive() && attempts < party.size()) {
-                nextIdx = (nextIdx + 1) % party.size();
-                attempts++;
-            }
+        // If no other alive members found, keep current index (will be validated when player turn starts)
+        if (attempts < party.size()) {
             currentMemberIndex = nextIdx;
-            startPlayerTurn();
         }
+
+        // Start enemy phase immediately
+        startEnemyTurn();
     }
 
     // ============================================================
@@ -539,7 +576,8 @@ public class GamePanel extends JPanel implements ActionListener {
         if (idx >= enemies.size()) {
             if (allEnemiesDefeated()) { waveComplete(); }
             else {
-                currentMemberIndex = 0;
+                // Do not forcefully reset to first party member. currentMemberIndex
+                // was precomputed before the enemy phase in afterPlayerAction().
                 int attempts = 0;
                 while (!party.get(currentMemberIndex).isAlive() && attempts < party.size()) {
                     currentMemberIndex = (currentMemberIndex + 1) % party.size();
@@ -630,6 +668,38 @@ public class GamePanel extends JPanel implements ActionListener {
     private Enemy getFirstAliveEnemy() {
         for (Enemy e : enemies) { if (e.isAlive()) return e; }
         return null;
+    }
+
+    private Enemy getTauntingEnemy() {
+        for (Enemy e : enemies) { if (e.isAlive() && e.isTaunting()) return e; }
+        return null;
+    }
+
+    private Enemy chooseEnemyTarget() {
+        List<String> options = new ArrayList<>();
+        List<Enemy> alive = new ArrayList<>();
+        for (int i = 0; i < enemies.size(); i++) {
+            Enemy e = enemies.get(i);
+            if (e.isAlive()) {
+                options.add(i + ": " + e.getStatus());
+                alive.add(e);
+            }
+        }
+        if (alive.isEmpty()) return null;
+        String choice = (String) JOptionPane.showInputDialog(this,
+            "Choose an enemy target:", "Select Target",
+            JOptionPane.PLAIN_MESSAGE, null, options.toArray(new String[0]), options.get(0));
+        if (choice == null) return alive.get(0); // if cancelled, default to first alive
+        try {
+            int idx = Integer.parseInt(choice.split(":")[0].trim());
+            // find the Alive enemy with that original index
+            for (Enemy e : alive) {
+                if (enemies.indexOf(e) == idx) return e;
+            }
+        } catch (Exception ex) {
+            // fallthrough
+        }
+        return alive.get(0);
     }
 
     private void checkEnemyDefeated(Enemy enemy) {
