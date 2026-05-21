@@ -785,10 +785,10 @@ public class GamePanel extends JPanel implements ActionListener {
     private void saveGame() {
         boolean success = SaveManager.saveGame(currentWave, gold, enemiesDefeated, turnsTaken, party, inventory);
         statusLabel.setText(success ? "\uD83D\uDCBE Game saved! (Wave " + currentWave + ")" : "\u274C Save failed!");
+       JOptionPane.showMessageDialog(this, "Game Saved:");
     }
 
-    // ============================================================
-    // FLOATING TEXT
+            // FLOATING TEXT
     // ============================================================
     private void showFloatingText(String text, int y, Color color) {
         floatingText = text;

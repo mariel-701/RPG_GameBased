@@ -1,0 +1,11 @@
+wave:2
+gold:46
+scoreEnemies:2
+scoreTurns:4
+party:
+Warrior:Warrior:150:50:true
+Mage:Mage:69:100:true
+inventory:
+Health Potion:HEAL_HP:50
+Mana Elixir:RESTORE_MP:40
+Revive Scroll:REVIVE:80
